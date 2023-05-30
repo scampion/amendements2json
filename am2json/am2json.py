@@ -139,7 +139,8 @@ def get_metadata(soup):
             'article_type': get_article_type(soup),
             'dossier_title': soup.find("titre").text.strip(),
             'dossier_type': get_titretype(soup),
-            'legal_act': 'regulation' # TODO: get this from the doc
+            'legal_act': 'regulation', # TODO: get this from the doc
+            'justification': None
             }
 
 
