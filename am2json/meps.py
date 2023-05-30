@@ -1,10 +1,10 @@
 import requests
 import xml.etree.ElementTree as ET
 import csv
-
+import json
+import os
 
 def get_mep_gender():
-    # Find gender
     url = "https://www.tttp.eu/data/meps.csv"
     r = requests.get(url)
     if r.status_code == 200:
@@ -15,7 +15,7 @@ def get_mep_gender():
         return genders
 
 
-if __name__ == '__main__':
+def get_mep_data_from_web():
     alphabet = 'abcdefghijklmnopqrstuvwxyz'
     url = "https://www.europarl.europa.eu/meps/en/full-list/xml/"
     data = {}
@@ -63,12 +63,26 @@ if __name__ == '__main__':
             print("🌩️ Error " + str(e))
             continue
 
+    return data
 
 
+def get_mep_data():
+    user_dir = os.path.expanduser('~')
+    data_dir = os.path.join(user_dir, '.amendements2json')
+    if not os.path.exists(data_dir):
+        os.makedirs(data_dir)
+    data_file = os.path.join(data_dir, 'meps.json')
+    if os.path.exists(data_file):
+        with open(data_file, 'r') as f:
+            data = json.load(f)
+    else:
+        data = get_mep_data_from_web()
+        with open(data_file, 'w') as f:
+            json.dump(data, f, indent=2)
+    return data
 
 
+if __name__ == '__main__':
+    data = get_mep_data()
+    json.dumps(data, indent=2)
 
-
-    import json
-    with open('meps.json', 'w') as f:
-        json.dump(data, f, indent=2)

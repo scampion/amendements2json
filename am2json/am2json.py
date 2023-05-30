@@ -12,10 +12,12 @@ from docx.oxml.table import CT_Tbl
 from docx.table import _Cell, Table
 from docx.text.paragraph import Paragraph
 
+import am2json.meps as meps
+
 logging.basicConfig(level=logging.DEBUG)
 log = logging.getLogger(__name__)
 
-mep_info = json.load(open("mep_info.json", 'r'))
+mep_info = meps.get_mep_data()
 
 
 def clean(func):

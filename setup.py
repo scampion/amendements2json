@@ -15,6 +15,6 @@ setup(
     long_description_content_type="text/markdown",
     author="Sebastien Campion",
     license="MIT",
-    packages=find_packages(exclude=("tests", "docs")),
+    packages=['am2json'],
     install_requires=open("requirements.txt").read().splitlines(),
 )
