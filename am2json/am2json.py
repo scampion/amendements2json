@@ -208,7 +208,7 @@ def get_amendments(soup):
     for amend in soup.find_all("amend"):
         md['authors'] = list(get_authors(amend))
         md['amendment_num'] = get_amend_num(amend)
-        md['draft_opinion'], md['amendment'], md['edit_type'], md['edit_indices'] = get_amd(amend)
+        md['text_original'], md['text_amended'], md['edit_type'], md['edit_indices'] = get_amd(amend)
         yield md
 
 
