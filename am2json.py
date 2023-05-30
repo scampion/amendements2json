@@ -132,8 +132,6 @@ def get_metadata(soup):
 
 def get_amd(amend):
     table = amend.find("table")
-    if not table:
-        return None, None, None, None
     draft_opinion = table.find_all("tr")[1].find_all("td")[0].text.strip()
     amendment = table.find_all("tr")[1].find_all("td")[1].text.strip()
 
