@@ -12,7 +12,7 @@ from docx.oxml.table import CT_Tbl
 from docx.table import _Cell, Table
 from docx.text.paragraph import Paragraph
 
-import am2json.meps as meps
+import meps as meps
 
 logging.basicConfig(level=logging.DEBUG)
 log = logging.getLogger(__name__)
@@ -109,7 +109,6 @@ def get_dossier_ref(soup):
         return soup.find("docrefpe").text.strip()
 
 
-@clean
 def get_source(soup):
     if soup.find("docref"):
         return soup.find("docref").text.strip()
@@ -125,10 +124,11 @@ def get_date(soup):
 def get_article_type(soup):
     if soup.find("article"):
         article_type = soup.find("article").text.strip()
-        article = article_type.split(' ')[0].lower
-        if article in ['annex', 'article', 'citation', 'other', 'paragraph', 'recital', 'title']:
-            return article
+        return article_type.split(' ')[0].lower()
 
+def get_titretype(soup):
+    if soup.find('titretype'):
+        return soup.find('titretype').text.strip().split()[-1].lower()
 
 def get_metadata(soup):
     return {'committee': get_committee(soup),
@@ -137,7 +137,8 @@ def get_metadata(soup):
             'rapporteur': soup.find("rapporteur").text.strip(),
             'source': get_source(soup),
             'article_type': get_article_type(soup),
-            'dossier_title': soup.find("titre").text.strip()
+            'dossier_title': soup.find("titre").text.strip(),
+            'dossier_type': get_titretype(soup)
             }
 
 
@@ -219,6 +220,9 @@ def extract_amendments(file):
 
 
 if __name__ == '__main__':
+    soup = get_html(sys.argv[1])
+    with open(sys.argv[1] + ".json", "w") as f:
+        json.dump(soup.prettify(), f, indent=2)
     for i, r in enumerate(extract_amendments(sys.argv[1])):
         with open(sys.argv[1] + f"_{i}.json", 'w') as f:
             json.dump(r, f, indent=2, separators=(',', ':'))
