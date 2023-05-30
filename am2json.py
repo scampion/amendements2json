@@ -6,9 +6,16 @@ from bs4 import BeautifulSoup
 import re
 
 from docx import Document
+from docx.document import Document as _Document
+from docx.oxml.text.paragraph import CT_P
+from docx.oxml.table import CT_Tbl
+from docx.table import _Cell, Table
+from docx.text.paragraph import Paragraph
 
 logging.basicConfig(level=logging.DEBUG)
 log = logging.getLogger(__name__)
+
+mep_info = json.load(open("mep_info.json", 'r'))
 
 
 def clean(func):
@@ -21,12 +28,62 @@ def clean(func):
             text = r
             break
         return text
+
     return wrapper
 
-def get_html(doc_file):
-    doc = Document(doc_file)
-    text_content = "\n".join([paragraph.text for paragraph in doc.paragraphs])
-    soup = BeautifulSoup(text_content, 'html.parser')
+
+# def get_html(doc_file):
+#     doc = Document(doc_file)
+#     text_content = "\n".join([paragraph.text for paragraph in doc.paragraphs])
+#     soup = BeautifulSoup(text_content, 'html.parser')
+#     return soup
+
+
+def get_html(file):
+    def iter_block_items(parent):
+        """
+        Generate a reference to each paragraph and table child within *parent*,
+        in document order. Each returned value is an instance of either Table or
+        Paragraph. *parent* would most commonly be a reference to a main
+        Document object, but also works for a _Cell object, which itself can
+        contain paragraphs and tables.
+        """
+        if isinstance(parent, _Document):
+            parent_elm = parent.element.body
+        elif isinstance(parent, _Cell):
+            parent_elm = parent._tc
+        elif isinstance(parent, _Row):
+            parent_elm = parent._tr
+        else:
+            raise ValueError("something's not right")
+        for child in parent_elm.iterchildren():
+            if isinstance(child, CT_P):
+                yield Paragraph(child, parent)
+            elif isinstance(child, CT_Tbl):
+                yield Table(child, parent)
+
+    document = Document(file)
+
+    html_string = ""
+    for block in iter_block_items(document):
+        # print(block.text if isinstance(block, Paragraph) else '<table>')
+        if isinstance(block, Paragraph):
+            if block.text:
+                html_string += block.text + "<br>"
+        elif isinstance(block, Table):
+            html_string += "<table>"
+            for row in block.rows:
+                if any(cell.text.strip() for cell in row.cells):  # Check if any cell in the row is non-empty
+                    html_string += "<tr>"
+                    row_data = []
+                    for cell in row.cells:
+                        cell_text = " ".join([paragraph.text for paragraph in cell.paragraphs])
+                        html_string += f"<td>{cell_text}</td>"
+                    html_string += "</tr>"
+
+            html_string += "</table>"
+
+    soup = BeautifulSoup(html_string, "html.parser")
     return soup
 
 
@@ -50,7 +107,6 @@ def get_dossier_ref(soup):
         return soup.find("docrefpe").text.strip()
 
 
-
 @clean
 def get_source(soup):
     if soup.find("docref"):
@@ -61,7 +117,7 @@ def get_source(soup):
 
 @clean
 def get_date(soup):
-    return  soup.find("date").text
+    return soup.find("date").text
 
 
 def get_metadata(soup):
@@ -112,33 +168,35 @@ def get_amd(amend):
 
 
 def get_authors(amend):
-    mep_info = json.load(open("mep_info.json", 'r'))
-    author_names = [author.text.strip() for author in amend.find_all("members")]
-    authors = []
-    for author_name in author_names:
-        author_data = None
+    def get_mep_info(name):
+        global mep_info
         for mep_id, mep_data in mep_info.items():
-            if mep_data.get('name').lower() == author_name.lower():
-                author_data = mep_data
-                break
-        if author_data:
-            author = {
+            if mep_data.get('name').lower() == name.lower():
+                return mep_id, mep_data
+
+    for author in [author.strip() for author in amend.find("members").text.split(",")]:
+        mep_id, mep_data = get_mep_info(author)
+        if mep_data:
+            yield {
                 'id': int(mep_id),
-                'name': author_data.get('name'),
-                'gender': author_data.get('gender'),
-                'nationality': author_data.get('nationality'),
-                'group': author_data.get('group-ep9'),
+                'name': mep_data.get('name'),
+                'gender': mep_data.get('gender'),
+                'nationality': mep_data.get('nationality'),
+                'group': mep_data.get('group-ep9'),
                 'rapporteur': False
             }
-            authors.append(author)
-    return authors
+
+
+def get_amend_num(amend):
+    if amend.find("numam"):
+        return amend.find("numam").text.strip()
 
 
 def get_amendments(soup):
     md = get_metadata(soup)
     for amend in soup.find_all("amend"):
-        md['authors'] = get_authors(amend)
-        md['amendment_num'] = amend.find("num").text.strip() if amend.find("num") else None
+        md['authors'] = list(get_authors(amend))
+        md['amendment_num'] = get_amend_num(amend)
         md['draft_opinion'], md['amendment'], md['edit_type'], md['diff_indices'] = get_amd(amend)
         yield md
 
@@ -146,11 +204,13 @@ def get_amendments(soup):
 if __name__ == '__main__':
     soup = get_html(sys.argv[1])
     assert soup.find("typeam") and soup.find("typeam").text.strip() == "AMENDMENTS", "Not an amendment file"
-    with open(sys.argv[1]+".html", 'w') as f:
+    with open(sys.argv[1] + ".html", 'w') as f:
         f.write(soup.prettify())
-    md = get_metadata(soup)
 
-    for a in get_amendments(soup):
-       r = md | a
-       print(json.dumps(r, indent=4, separators=(',', ':')))
-       print("#" * 80)
+    md = get_metadata(soup)
+    for i, a in enumerate(get_amendments(soup)):
+        r = md | a
+        with open(sys.argv[1] + f"_{i}.json", 'w') as f:
+            json.dump(r, f, indent=2, separators=(',', ':'))
+        print(json.dumps(r, indent=2, separators=(',', ':')))
+        print("-" * 80)
