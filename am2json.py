@@ -65,8 +65,7 @@ def get_date(soup):
 
 
 def get_metadata(soup):
-    return {'parliament': get_parliament(soup),
-            'committee': get_committee(soup),
+    return {'committee': get_committee(soup),
             'dossier_ref': get_dossier_ref(soup),
             'date': get_date(soup),
             'rapporteur': soup.find("rapporteur").text.strip(),
@@ -146,13 +145,12 @@ def get_amendments(soup):
 
 if __name__ == '__main__':
     soup = get_html(sys.argv[1])
-    assert soup.find("typeam") and soup.find("typeam").text.strip() == "AMENDMENT", "Not an amendment file"
+    assert soup.find("typeam") and soup.find("typeam").text.strip() == "AMENDMENTS", "Not an amendment file"
     with open(sys.argv[1]+".html", 'w') as f:
         f.write(soup.prettify())
     md = get_metadata(soup)
-    print(json.dumps(md, indent=4, separators=(',', ':')))
 
-    #import IPython;  IPython.embed()
-    #for a in get_amendments(soup):
-    #    print(json.dumps(a, indent=4, separators=(',', ':')))
-    #    print("#" * 80)
+    for a in get_amendments(soup):
+       r = md | a
+       print(json.dumps(r, indent=4, separators=(',', ':')))
+       print("#" * 80)
