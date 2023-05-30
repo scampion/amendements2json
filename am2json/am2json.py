@@ -12,7 +12,7 @@ from docx.oxml.table import CT_Tbl
 from docx.table import _Cell, Table
 from docx.text.paragraph import Paragraph
 
-import meps as meps
+import am2json.meps as meps
 
 logging.basicConfig(level=logging.DEBUG)
 log = logging.getLogger(__name__)
