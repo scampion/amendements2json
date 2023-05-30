@@ -23,10 +23,10 @@ mep_info = meps.get_mep_data()
 def clean(func):
     def wrapper(*args, **kwargs):
         text = func(*args, **kwargs)
-        for r in re.findall(r'\{(.*?)\}', text):
+        for r in re.findall(r'\{(.*?)\}$', text):
             text = r
             break
-        for r in re.findall(r'\((.*?)\)', text):
+        for r in re.findall(r'\((.*?)\)$', text):
             text = r
             break
         return text
@@ -108,7 +108,7 @@ def get_dossier_ref(soup):
     elif soup.find("docrefpe"):
         return soup.find("docrefpe").text.strip()
 
-
+@clean
 def get_source(soup):
     if soup.find("docref"):
         return soup.find("docref").text.strip()
@@ -138,7 +138,8 @@ def get_metadata(soup):
             'source': get_source(soup),
             'article_type': get_article_type(soup),
             'dossier_title': soup.find("titre").text.strip(),
-            'dossier_type': get_titretype(soup)
+            'dossier_type': get_titretype(soup),
+            'legal_act': 'regulation' # TODO: get this from the doc
             }
 
 
