@@ -2,7 +2,6 @@ import difflib
 import json
 import sys
 import logging
-import xmltodict
 from bs4 import BeautifulSoup
 import re
 
@@ -28,7 +27,6 @@ def get_html(doc_file):
     doc = Document(doc_file)
     text_content = "\n".join([paragraph.text for paragraph in doc.paragraphs])
     soup = BeautifulSoup(text_content, 'html.parser')
-    log.debug(soup.prettify())
     return soup
 
 
@@ -61,9 +59,9 @@ def get_source(soup):
         return soup.find("docrefpe").text.strip()
 
 
+@clean
 def get_date(soup):
-    date_full = soup.find("date").text.strip()
-    return date_full[date_full.find("{") + 1: date_full.find("}")]
+    return  soup.find("date").text
 
 
 def get_metadata(soup):
@@ -148,10 +146,12 @@ def get_amendments(soup):
 
 if __name__ == '__main__':
     soup = get_html(sys.argv[1])
+    assert soup.find("typeam") and soup.find("typeam").text.strip() == "AMENDMENT", "Not an amendment file"
     with open(sys.argv[1]+".html", 'w') as f:
         f.write(soup.prettify())
     md = get_metadata(soup)
-    print(md)
+    print(json.dumps(md, indent=4, separators=(',', ':')))
+
     #import IPython;  IPython.embed()
     #for a in get_amendments(soup):
     #    print(json.dumps(a, indent=4, separators=(',', ':')))
