@@ -199,15 +199,16 @@ def get_amendments(soup):
         yield md
 
 
-if __name__ == '__main__':
-    soup = get_html(sys.argv[1])
+def extract_amendments(file):
+    soup = get_html(file)
     assert soup.find("typeam") and soup.find("typeam").text.strip() == "AMENDMENTS", "Not an amendment file"
-    with open(sys.argv[1] + ".html", 'w') as f:
-        f.write(soup.prettify())
-
     md = get_metadata(soup)
     for i, a in enumerate(get_amendments(soup)):
-        r = md | a
+        yield md | a
+
+
+if __name__ == '__main__':
+    for i, r in enumerate(extract_amendments(sys.argv[1])):
         with open(sys.argv[1] + f"_{i}.json", 'w') as f:
             json.dump(r, f, indent=2, separators=(',', ':'))
         print(json.dumps(r, indent=2, separators=(',', ':')))
