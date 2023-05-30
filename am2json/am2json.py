@@ -122,12 +122,21 @@ def get_date(soup):
     return soup.find("date").text
 
 
+def get_article_type(soup):
+    if soup.find("article"):
+        article_type = soup.find("article").text.strip()
+        article = article_type.split(' ')[0].lower
+        if article in ['annex', 'article', 'citation', 'other', 'paragraph', 'recital', 'title']:
+            return article
+
+
 def get_metadata(soup):
     return {'committee': get_committee(soup),
             'dossier_ref': get_dossier_ref(soup),
             'date': get_date(soup),
             'rapporteur': soup.find("rapporteur").text.strip(),
             'source': get_source(soup),
+            'article_type': get_article_type(soup),
             'dossier_title': soup.find("titre").text.strip()
             }
 
