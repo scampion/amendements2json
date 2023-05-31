@@ -130,6 +130,38 @@ def get_titretype(soup):
     if soup.find('titretype'):
         return soup.find('titretype').text.strip().split()[-1].lower()
 
+
+def get_legal_act(soup):
+    # Find the <docref> tag cause the legal type is after the <br> right next to it.
+
+    try:
+        docref_tag = soup.find('docref')
+
+        br_tag = docref_tag.find_next('br')
+
+        leg_type = br_tag.next_sibling.string.strip()
+    except:
+        leg_type = "NA"
+
+    # Check if document is a resolution
+    if "Non" in leg_type:
+        return "resolution"
+    elif soup.find(text="Proposal for a directive"):
+        return "directive"
+
+    elif soup.find(text="Proposal for a regulation"):
+        return "regulation"
+
+    elif soup.find(text="Proposal for a decision"):
+        return "decision"
+    else:
+        return "None"
+
+
+
+
+
+
 def get_metadata(soup):
     return {'committee': get_committee(soup),
             'dossier_ref': get_dossier_ref(soup),
@@ -139,7 +171,7 @@ def get_metadata(soup):
             'article_type': get_article_type(soup),
             'dossier_title': soup.find("titre").text.strip(),
             'dossier_type': get_titretype(soup),
-            'legal_act': 'regulation', # TODO: get this from the doc
+            'legal_act': get_legal_act(soup),
             'justification': None
             }
 
