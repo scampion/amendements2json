@@ -1,8 +1,13 @@
+import io
+import tempfile
+import zipfile
+
 import requests
 import xml.etree.ElementTree as ET
 import csv
 import json
 import os
+
 
 def get_mep_gender():
     url = "https://www.tttp.eu/data/meps.csv"
@@ -66,6 +71,17 @@ def get_mep_data_from_web():
     return data
 
 
+def get_previous_mep_data():
+    url = "https://zenodo.org/record/4709248/files/helpers.zip?download=1"
+    r = requests.get(url)
+    if r.status_code == 200:
+        iob = io.BytesIO(r.content)
+        with zipfile.ZipFile(iob, 'r') as zip_ref, tempfile.TemporaryDirectory() as tmpdir:
+            zip_ref.extract('helpers/meps.json', tmpdir)
+            with open(os.path.join(tmpdir, 'helpers/meps.json'), 'r') as f:
+                return json.load(f)
+
+
 def get_mep_data():
     user_dir = os.path.expanduser('~')
     data_dir = os.path.join(user_dir, '.amendements2json')
@@ -77,6 +93,11 @@ def get_mep_data():
             data = json.load(f)
     else:
         data = get_mep_data_from_web()
+        for k, v in get_previous_mep_data().items():
+            if k not in data.keys():
+                data[k] = v
+            else:
+                data[k] = {**data[k], **v}
         with open(data_file, 'w') as f:
             json.dump(data, f, indent=2)
     return data
@@ -85,4 +106,3 @@ def get_mep_data():
 if __name__ == '__main__':
     data = get_mep_data()
     json.dumps(data, indent=2)
-
