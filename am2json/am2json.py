@@ -23,7 +23,7 @@ mep_info = meps.get_mep_data()
 def clean(func):
     def wrapper(*args, **kwargs):
         text = func(*args, **kwargs)
-        for r in re.findall(r'\{(.*?)\}$', text):
+        for r in re.findall(r'\{(.*?)\}', text):
             text = r
             break
         for r in re.findall(r'\((.*?)\)$', text):
