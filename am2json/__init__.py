@@ -1,1 +1,1 @@
-from .am2json import extract_amendments
+from .am2json import extract_amendments, get_html
