@@ -1,0 +1,1 @@
+from .am2json import extract_amendments

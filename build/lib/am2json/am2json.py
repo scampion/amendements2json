@@ -117,21 +117,6 @@ def get_source(soup):
 
 
 @clean
-# The dossier ID, i.e. PE700.718, are always in docrefpre tags.
-def get_dossier_id(soup):
-    try:
-        dossier_id = soup.find("docrefpe").text.strip()
-        dossier_id = dossier_id.strip('()')
-        # Get only
-        dossier_id = dossier_id[:9]
-        return dossier_id
-    except:
-        return "None"
-
-
-
-
-@clean
 def get_date(soup):
     return soup.find("date").text
 
@@ -180,7 +165,6 @@ def get_legal_act(soup):
 def get_metadata(soup):
     return {'committee': get_committee(soup),
             'dossier_ref': get_dossier_ref(soup),
-            'dossier_id': get_dossier_id(soup),
             'date': get_date(soup),
             'rapporteur': soup.find("rapporteur").text.strip(),
             'source': get_source(soup),
