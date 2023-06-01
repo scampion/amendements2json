@@ -181,10 +181,12 @@ def get_amd(amend):
 
 def get_authors(amend):
     def get_mep_info(name):
+        name = name.replace('ß', 'ss')  # Albert DESS
         global mep_info
         for mep_id, mep_data in mep_info.items():
             if mep_data.get('name').lower() == name.lower():
                 return mep_id, mep_data
+        log.warning(f"Could not find MEP {name} in the list of MEPs")
 
     for author in [author.strip() for author in amend.find("members").text.split(",")]:
         mep_id, mep_data = get_mep_info(author)
