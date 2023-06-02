@@ -27,7 +27,7 @@ legislatures_dates = {7: (2009, 2014),
                       9: (2019, 2024)}
 
 def get_legislature(date):
-    date = datetime.datetime.strptime(date, '%d/%m/%Y').date()
+    date = datetime.datetime.strptime(date, '%Y-%m-%d').date()
     for legislature, dates in legislatures_dates.items():
         if datetime.date(dates[0], 7, 1) <= date <= datetime.date(dates[1], 7, 1):
             return legislature
@@ -129,9 +129,13 @@ def get_source(soup):
         return soup.find("docrefpe").text.strip()
 
 
-@clean
 def get_date(soup):
-    return soup.find("date").text
+    @clean
+    def get_raw_date(soup):
+        return soup.find("date").text.strip()
+
+    date = datetime.datetime.strptime(get_raw_date(soup), '%d/%m/%Y').date()
+    return date.strftime('%Y-%m-%d')
 
 
 def get_article_type(soup):
@@ -158,11 +162,21 @@ def get_metadata(soup):
 
 def get_amd(amend):
     table = amend.find("table")
-    draft_opinion = table.find_all("tr")[1].find_all("td")[0].text.strip()
-    amendment = table.find_all("tr")[1].find_all("td")[1].text.strip()
+    text_original = table.find_all("tr")[1].find_all("td")[0].text.strip()
+    text_amended = table.find_all("tr")[1].find_all("td")[1].text.strip()
+
+    # We test if the first word match a regex to detect only one letter between parenthesis
+    # If it's the case, we remove it
+    if text_original and re.match(r'\([a-zA-Z]\)', text_original.split()[0]):
+        text_original = ' '.join(text_original.split()[1:])
+    if text_amended and re.match(r'\([a-zA-Z]\)', text_amended.split()[0]):
+        text_amended = ' '.join(text_amended.split()[1:])
+
+    text_original = text_original.replace(',', ' ,')
+    text_amended = text_amended.replace(',', ' ,')
 
     # We get here the edit_indices and edit type using difflib
-    diff = difflib.ndiff(draft_opinion.split(), amendment.split())
+    diff = difflib.ndiff(text_original.split(), text_amended.split())
     edit_type = None
     diff_indices = {'i1': 0, 'i2': 0, 'j1': 0, 'j2': 0}
 
@@ -188,7 +202,7 @@ def get_amd(amend):
             diff_indices['j1'] = i
             diff_indices['j2'] = i + 1
             break
-    return draft_opinion.lower().split(), amendment.lower().split(), edit_type, diff_indices
+    return text_original.lower().split(), text_amended.lower().split(), edit_type, diff_indices
 
 
 def get_authors(amend, date):
@@ -219,12 +233,21 @@ def get_amend_num(amend):
         return amend.find("numam").text.strip()
 
 
+def get_justification(amend):
+    if amend.find("titrejust"):
+        titrejust = amend.find("titrejust")
+        # find the next child of this node titrejust
+        # that is not a <br> tag
+        # and return its text
+        return titrejust.find_next_sibling(text=True).strip()
+
 def get_amendments(soup):
     md = get_metadata(soup)
     for amend in soup.find_all("amend"):
         md['article_type'] = get_article_type(amend)
         md['authors'] = list(get_authors(amend, md['date']))
         md['amendment_num'] = get_amend_num(amend)
+        md['justification'] = get_justification(amend)
         md['text_original'], md['text_amended'], md['edit_type'], md['edit_indices'] = get_amd(amend)
         yield md
 
