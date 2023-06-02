@@ -2,6 +2,8 @@ import difflib
 import json
 import sys
 import logging
+import datetime
+
 from bs4 import BeautifulSoup
 import re
 
@@ -18,6 +20,17 @@ logging.basicConfig(level=logging.DEBUG)
 log = logging.getLogger(__name__)
 
 mep_info = meps.get_mep_data()
+
+
+legislatures_dates = {7: (2009, 2014),
+                      8: (2014, 2019),
+                      9: (2019, 2024)}
+
+def get_legislature(date):
+    date = datetime.datetime.strptime(date, '%d/%m/%Y').date()
+    for legislature, dates in legislatures_dates.items():
+        if datetime.date(dates[0], 7, 1) <= date <= datetime.date(dates[1], 7, 1):
+            return legislature
 
 
 def clean(func):
@@ -136,7 +149,6 @@ def get_metadata(soup):
             'date': get_date(soup),
             'rapporteur': soup.find("rapporteur").text.strip(),
             'source': get_source(soup),
-            'article_type': get_article_type(soup),
             'dossier_title': soup.find("titre").text.strip(),
             'dossier_type': get_titretype(soup),
             'legal_act': 'regulation', # TODO: get this from the doc
@@ -176,12 +188,13 @@ def get_amd(amend):
             diff_indices['j1'] = i
             diff_indices['j2'] = i + 1
             break
-    return draft_opinion, amendment, edit_type, diff_indices
+    return draft_opinion.lower().split(), amendment.lower().split(), edit_type, diff_indices
 
 
-def get_authors(amend):
+def get_authors(amend, date):
     def get_mep_info(name):
         name = name.replace('ß', 'ss')  # Albert DESS
+        name = name.replace('–', '-')  # "jean–paul denanot" != "jean-paul denanot"
         global mep_info
         for mep_id, mep_data in mep_info.items():
             if mep_data.get('name').lower() == name.lower():
@@ -196,7 +209,7 @@ def get_authors(amend):
                 'name': mep_data.get('name'),
                 'gender': mep_data.get('gender'),
                 'nationality': mep_data.get('nationality'),
-                'group': mep_data.get('group-ep9'),
+                'group': mep_data.get(f'group-ep{get_legislature(date)}'),
                 'rapporteur': False
             }
 
@@ -209,7 +222,8 @@ def get_amend_num(amend):
 def get_amendments(soup):
     md = get_metadata(soup)
     for amend in soup.find_all("amend"):
-        md['authors'] = list(get_authors(amend))
+        md['article_type'] = get_article_type(amend)
+        md['authors'] = list(get_authors(amend, md['date']))
         md['amendment_num'] = get_amend_num(amend)
         md['text_original'], md['text_amended'], md['edit_type'], md['edit_indices'] = get_amd(amend)
         yield md
