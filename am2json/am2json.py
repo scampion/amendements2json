@@ -245,6 +245,7 @@ def get_amendments(soup):
     md = get_metadata(soup)
     for amend in soup.find_all("amend"):
         md['article_type'] = get_article_type(amend)
+        md['target'] = soup.find('article').text.strip()
         md['authors'] = list(get_authors(amend, md['date']))
         md['amendment_num'] = get_amend_num(amend)
         md['justification'] = get_justification(amend)
