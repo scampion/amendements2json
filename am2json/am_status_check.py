@@ -1,8 +1,11 @@
+import pathlib
+
 import requests
 from bs4 import BeautifulSoup
 from am2json.am2json import get_html, get_dossier_id
 
 
+# Based on dossier ID, extract files from base URL (has to be 2 files, 1 draft, 1 final) through GET request
 def get_final_dossier(dossier_id, download=False, debug=False):
     dossier_id_field = dossier_id.replace("PE", "")
     # First we create the URL GET request here
@@ -64,8 +67,4 @@ def get_final_dossiers(directory, download=False, debug=False):
     return final_dossiers
 
 
-
-
-def get_amendment_accepted(amend_text, dossier_id):
-    pass
 

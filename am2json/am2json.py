@@ -9,7 +9,7 @@ from docx import Document
 from docx.document import Document as _Document
 from docx.oxml.text.paragraph import CT_P
 from docx.oxml.table import CT_Tbl
-from docx.table import _Cell, Table
+from docx.table import _Cell, Table, _Row
 from docx.text.paragraph import Paragraph
 
 import am2json.meps as meps
@@ -171,10 +171,6 @@ def get_legal_act(soup):
         return "decision"
     else:
         return "None"
-
-
-
-
 
 
 def get_metadata(soup):
