@@ -1,1 +1,9 @@
+<<<<<<< HEAD
 *.pyc
+=======
+testing.py
+example_files/
+final_dossiers/
+data/
+main.py
+>>>>>>> Mohamed
