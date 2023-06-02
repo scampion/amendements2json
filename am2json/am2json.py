@@ -21,10 +21,10 @@ log = logging.getLogger(__name__)
 
 mep_info = meps.get_mep_data()
 
-
 legislatures_dates = {7: (2009, 2014),
                       8: (2014, 2019),
                       9: (2019, 2024)}
+
 
 def get_legislature(date):
     date = datetime.datetime.strptime(date, '%d/%m/%Y').date()
@@ -121,6 +121,7 @@ def get_dossier_ref(soup):
     elif soup.find("docrefpe"):
         return soup.find("docrefpe").text.strip()
 
+
 @clean
 def get_source(soup):
     if soup.find("docref"):
@@ -139,9 +140,11 @@ def get_article_type(soup):
         article_type = soup.find("article").text.strip()
         return article_type.split(' ')[0].lower()
 
+
 def get_titretype(soup):
     if soup.find('titretype'):
         return soup.find('titretype').text.strip().split()[-1].lower()
+
 
 def get_metadata(soup):
     return {'committee': get_committee(soup),
@@ -151,7 +154,7 @@ def get_metadata(soup):
             'source': get_source(soup),
             'dossier_title': soup.find("titre").text.strip(),
             'dossier_type': get_titretype(soup),
-            'legal_act': 'regulation', # TODO: get this from the doc
+            'legal_act': 'regulation',  # TODO: get this from the doc
             'justification': None
             }
 
