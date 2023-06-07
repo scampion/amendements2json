@@ -7,6 +7,13 @@ import re
 import string
 
 
+def remove_enumeration_pattern(text):
+    """
+    Remove the enumeration pattern from the given text.
+    """
+    return re.sub(r'^[-\w]+\.\s*|^-\s*|–\s*|—\s*', '', text)
+
+
 def preprocess_text(am):
     # Remove all whitespace space, tabs etc)
     am = re.sub(r'\s+', '', am)
@@ -19,12 +26,11 @@ def preprocess_text(am):
 
 def get_label_am(am_text, final_amendments):
     if isinstance(am_text, list):
-        am_text = "".join(am_text)
+        am_text = " ".join(am_text)
 
-    if am_text[0] in ["-", "–"]:
-        am_text = am_text[1:]
-
+    am_text = remove_enumeration_pattern(am_text)
     am_text = preprocess_text(am_text)
+
 
     final_amendments = [preprocess_text(text) for text in final_amendments]
 

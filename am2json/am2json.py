@@ -15,7 +15,7 @@ from docx.table import _Cell, Table, _Row
 from docx.text.paragraph import Paragraph
 import requests
 from io import BytesIO
-
+import unicodedata
 import am2json.meps as meps
 from am2json.am_labeler import get_label_am
 from am2json.dossier_retriever import get_final_dossier_link
@@ -122,12 +122,13 @@ def extract_final_amendments(file):
     for paragraph in paragraphs:
         # Check if the paragraph starts with an enumeration pattern, i.e. with "-" or "A." or 1.
         if re.match(r'^[-\dA-Z]+\.', paragraph) or paragraph[0] in ["-", "–"]:
-            # Check if tab character is somewhere in the first few chartacters it to make sure it's an numeration
+            # Check if tab character is somewhere in the first few characters it to make sure it's an enumeration
             # the len(paragraph) > 12 is to avoid bad edge cases like " - : against" key at the end of document
             if len(paragraph) > min_length and '\t' in paragraph[0:8]:
                 # skip tab when adding text
                 offset_index = paragraph.find('\t')
                 text = paragraph[(offset_index + 1):]
+                text = unicodedata.normalize("NFKD", text)
                 amendments.append(text)
     return amendments
 
