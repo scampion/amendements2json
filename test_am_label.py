@@ -1,6 +1,6 @@
 from am2json.am2json import extract_amendments
 from am2json.am2json import get_html
-from am2json.am2json import get_final_dossier_html, get_label_am
+from am2json.am2json import get_final_dossier_am, get_label_am
 import pathlib
 import json
 directory = pathlib.Path("./data")
@@ -18,7 +18,7 @@ def run_test(amendments, idx):
 
     dossier_id = amendments[idx]["dossier_id"]
 
-    html_final = get_final_dossier_html(dossier_id)
+    final_amendments = get_final_dossier_am(dossier_id)
 
     am_text = amendments[idx]["text_amended"]
 
@@ -30,11 +30,11 @@ def run_test(amendments, idx):
 
     print("------------------")
     print("------------------")
-    #print(am_text)
+    print(am_text)
     print("------------------")
-    #print(html_final)
+    print(final_amendments)
     print("------------------")
-    print(get_label_am(am_text, html_final))
+    print(get_label_am(am_text, final_amendments))
     print("------------------")
     print("------------------")
 

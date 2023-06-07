@@ -110,22 +110,44 @@ def get_html(file):
 # Otherwise get it online
 
 
-def get_final_dossier_html(dossier_id, local=False):
+# Based on docx file of final amendment, get all amendments
+def extract_final_amendments(file):
+
+    document = Document(file)
+
+    paragraphs = [p.text for p in document.paragraphs if p.text.strip()]
+    amendments = []
+    # Minimum paragraph length
+    min_length = 12
+    for paragraph in paragraphs:
+        # Check if the paragraph starts with an enumeration pattern, i.e. with "-" or "A." or 1.
+        if re.match(r'^[-\dA-Z]+\.', paragraph) or paragraph[0] in ["-", "–"]:
+            # Check if tab character is somewhere in the first few chartacters it to make sure it's an numeration
+            # the len(paragraph) > 12 is to avoid bad edge cases like " - : against" key at the end of document
+            if len(paragraph) > min_length and '\t' in paragraph[0:8]:
+                # skip tab when adding text
+                offset_index = paragraph.find('\t')
+                text = paragraph[(offset_index + 1):]
+                amendments.append(text)
+    return amendments
+
+
+# Based on dossier ID, look for link or local file to get final amendments docx, and then apply function above.
+def get_final_dossier_am(dossier_id, local=False):
+
     if local:
         dossier_file = f"./final_dossiers/{dossier_id}.docx"
-        html_final = get_html(dossier_file)
-        return html_final
+        amendments = extract_final_amendments(dossier_file)
+        return amendments
     else:
         url_link = get_final_dossier_link(dossier_id)
         if url_link:
             response = requests.get(url_link)
             file_in_mem = BytesIO(response.content)
-            html_final = get_html(file_in_mem)
-            return html_final
+            amendments = extract_final_amendments(file_in_mem)
+            return amendments
         else:
-            empty_html = "<html></html>"
-            soup = BeautifulSoup(empty_html, 'html.parser')
-            return soup
+            return []
 
 
 # directory has to be a Pathlib directory, gets all final dossiers based on
@@ -328,7 +350,7 @@ def get_amendments(soup):
 
     # Extract html from final amendment
     dossier_id = md["dossier_id"]
-    html_final = get_final_dossier_html(dossier_id)
+    final_amendments= get_final_dossier_am(dossier_id)
     for amend in soup.find_all("amend"):
         md['article_type'] = get_article_type(amend)
         md['target'] = soup.find('article').text.strip()
@@ -336,7 +358,7 @@ def get_amendments(soup):
         md['amendment_num'] = get_amend_num(amend)
         md['justification'] = get_justification(amend)
         md['text_original'], md['text_amended'], md['edit_type'], md['edit_indices'] = get_amd(amend)
-        md["accepted"] = get_label_am(md['text_amended'], html_final)
+        md["accepted"] = get_label_am(md['text_amended'], final_amendments)
         yield md
 
 def extract_amendments(file):
