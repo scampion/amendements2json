@@ -17,8 +17,12 @@ from docx.oxml.text.paragraph import CT_P
 from docx.oxml.table import CT_Tbl
 from docx.table import _Cell, Table, _Row
 from docx.text.paragraph import Paragraph
-
+import requests
+from io import BytesIO
+import unicodedata
 import am2json.meps as meps
+from am2json.am_labeler import get_label_am
+from am2json.dossier_retriever import get_final_dossier_link
 
 logging.basicConfig(level=logging.DEBUG)
 log = logging.getLogger(__name__)
@@ -97,6 +101,65 @@ def get_html(file):
 
     soup = BeautifulSoup(html_string, "html.parser")
     return soup
+
+
+# Parameter local defines whether to get the file from local directory
+# Otherwise get it online
+
+
+# Based on docx file of final amendment, get all amendments
+def extract_final_amendments(file):
+
+    document = Document(file)
+
+    paragraphs = [p.text for p in document.paragraphs if p.text.strip()]
+    amendments = []
+    # Minimum paragraph length
+    min_length = 12
+    for paragraph in paragraphs:
+        # Check if the paragraph starts with an enumeration pattern, i.e. with "-" or "A." or 1.
+        if re.match(r'^[-\dA-Z]+\.', paragraph) or paragraph[0] in ["-", "–"]:
+            # Check if tab character is somewhere in the first few characters it to make sure it's an enumeration
+            # the len(paragraph) > 12 is to avoid bad edge cases like " - : against" key at the end of document
+            if len(paragraph) > min_length and '\t' in paragraph[0:8]:
+                # skip tab when adding text
+                offset_index = paragraph.find('\t')
+                text = paragraph[(offset_index + 1):]
+                text = unicodedata.normalize("NFKD", text)
+                amendments.append(text)
+    return amendments
+
+
+# Based on dossier ID, look for link or local file to get final amendments docx, and then apply function above.
+def get_final_dossier_am(dossier_id, local=False):
+
+    if local:
+        dossier_file = f"./final_dossiers/{dossier_id}.docx"
+        amendments = extract_final_amendments(dossier_file)
+        return amendments
+    else:
+        url_link = get_final_dossier_link(dossier_id)
+        if url_link:
+            response = requests.get(url_link)
+            file_in_mem = BytesIO(response.content)
+            amendments = extract_final_amendments(file_in_mem)
+            return amendments
+        else:
+            return []
+
+
+# directory has to be a Pathlib directory, gets all final dossiers based on
+# a directory that contains the amendment documents.
+def get_final_dossiers(directory, download=False, debug=False):
+    doc_files = list(directory.rglob("*_EN.docx"))
+    final_dossiers = []
+
+    for doc_file in doc_files:
+        soup = get_html(doc_file)
+        dossier_id = get_dossier_id(soup)
+        final_dossier = get_final_dossier_link(dossier_id, download=download, debug=debug)
+        final_dossiers.append(final_dossier)
+    return final_dossiers
 
 
 def get_parliament(soup):
@@ -286,6 +349,10 @@ def get_justification(amend):
 
 def get_amendments(soup):
     md = get_metadata(soup)
+
+    # Extract html from final amendment
+    dossier_id = md["dossier_id"]
+    final_amendments= get_final_dossier_am(dossier_id)
     for amend in soup.find_all("amend"):
         md['article'] = get_article(amend)
         md['article_type'] = get_article_type(amend)
@@ -294,8 +361,8 @@ def get_amendments(soup):
         md['amendment_num'] = get_amend_num(amend)
         md['justification'] = get_justification(amend)
         md['text_original'], md['text_amended'], md['edit_type'], md['edit_indices'] = get_amd(amend)
+        md["accepted"] = get_label_am(md['text_amended'], final_amendments)
         yield md
-
 
 def extract_amendments(file):
     soup = get_html(file)

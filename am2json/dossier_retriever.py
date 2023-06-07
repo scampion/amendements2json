@@ -2,11 +2,10 @@ import pathlib
 
 import requests
 from bs4 import BeautifulSoup
-from am2json.am2json import get_html, get_dossier_id
 
 
 # Based on dossier ID, extract files from base URL (has to be 2 files, 1 draft, 1 final) through GET request
-def get_final_dossier(dossier_id, download=False, debug=False):
+def get_final_dossier_link(dossier_id, download=False, debug=False):
     dossier_id_field = dossier_id.replace("PE", "")
     # First we create the URL GET request here
     url = 'https://www.europarl.europa.eu/committees/en/documents/search?committeeMnemoCode=&textualSearchMode=TITLE&textualSearch=&documentTypeCode=&reporterPersId=&procedureYear=&procedureNum=&procedureCodeType=&peNumber={dossier_id_field}&sessionDocumentDocTypePrefix=&sessionDocumentNumber=&sessionDocumentYear=&documentDateFrom=&documentDateTo=&meetingDateFrom=&meetingDateTo=&performSearch=true&term=9&page=0'.format(
@@ -53,18 +52,7 @@ def get_final_dossier(dossier_id, download=False, debug=False):
     return doc_link
 
 
-# directory has to be a Pathlib directory, gets all final dossiers based on
-# a directory that contains the amendment documents.
-def get_final_dossiers(directory, download=False, debug=False):
-    doc_files = list(directory.rglob("*_EN.docx"))
-    final_dossiers = []
 
-    for doc_file in doc_files:
-        soup = get_html(doc_file)
-        dossier_id = get_dossier_id(soup)
-        final_dossier = get_final_dossier(dossier_id, download=download, debug=debug)
-        final_dossiers.append(final_dossier)
-    return final_dossiers
 
 
 
