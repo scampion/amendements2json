@@ -1,16 +1,11 @@
-<<<<<<< HEAD
 .idea 
 *.pyc
 *.egg-info
 build
-=======
-<<<<<<< HEAD
+__pycache__
 *.pyc
-=======
 testing.py
 example_files/
 final_dossiers/
 data/
 main.py
->>>>>>> Mohamed
->>>>>>> dafb4c615f41690df680d7deaf15902f3df0ef95
