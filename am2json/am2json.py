@@ -1,8 +1,12 @@
 import difflib
+import glob
 import json
+import os
 import sys
 import logging
 import datetime
+from collections import defaultdict
+from tqdm import tqdm
 
 from bs4 import BeautifulSoup
 import re
@@ -45,13 +49,6 @@ def clean(func):
         return text
 
     return wrapper
-
-
-# def get_html(doc_file):
-#     doc = Document(doc_file)
-#     text_content = "\n".join([paragraph.text for paragraph in doc.paragraphs])
-#     soup = BeautifulSoup(text_content, 'html.parser')
-#     return soup
 
 
 def get_html(file):
@@ -142,6 +139,11 @@ def get_article_type(soup):
     if soup.find("article"):
         article_type = soup.find("article").text.strip()
         return article_type.split(' ')[0].lower()
+
+def get_article(soup):
+    if soup.find("article"):
+        article = soup.find("article").text.strip()
+        return article.lower()
 
 def get_titretype(soup):
     if soup.find('titretype'):
@@ -244,6 +246,7 @@ def get_justification(amend):
 def get_amendments(soup):
     md = get_metadata(soup)
     for amend in soup.find_all("amend"):
+        md['article'] = get_article(amend)
         md['article_type'] = get_article_type(amend)
         md['target'] = soup.find('article').text.strip()
         md['authors'] = list(get_authors(amend, md['date']))
@@ -261,12 +264,43 @@ def extract_amendments(file):
         yield md | a
 
 
+def extract_amendments_from_dir(dir, legislative_number=None, max_nb_of_docs=None):
+    data = {}
+    nb_of_amendments = 0
+    nb_of_documents = 0
+    log.info(f"Extracting amendments from {dir}")
+    for file in tqdm(glob.glob(dir+"/**/*", recursive=True)):
+        if file.endswith("EN.doc") or file.endswith("EN.docx"):
+            try:
+                for a in extract_amendments(os.path.join(dir, file)):
+                    if legislative_number and get_legislature(a['date']) != legislative_number:
+                        continue
+                    if a['dossier_ref'] not in data:
+                        data[a['dossier_ref']] = {}
+                    if a['article'] not in data[a['dossier_ref']]:
+                        data[a['dossier_ref']][a['article']] = []
+                    data[a['dossier_ref']][a['article']].append(a)
+                    nb_of_amendments += 1
+            except Exception as e:
+                log.error(f"Could not extract amendments from {file}: {e}")
+            nb_of_documents += 1
+            if max_nb_of_docs and nb_of_documents > max_nb_of_docs:
+                break
+    log.info(f"Extracted {nb_of_amendments} amendments from {nb_of_documents} documents")
+    return data
+
+
 if __name__ == '__main__':
-    soup = get_html(sys.argv[1])
-    with open(sys.argv[1] + ".json", "w") as f:
-        json.dump(soup.prettify(), f, indent=2)
-    for i, r in enumerate(extract_amendments(sys.argv[1])):
-        with open(sys.argv[1] + f"_{i}.json", 'w') as f:
-            json.dump(r, f, indent=2, separators=(',', ':'))
-        print(json.dumps(r, indent=2, separators=(',', ':')))
-        print("-" * 80)
+
+    data = extract_amendments_from_dir(sys.argv[1])
+    with open("dataset.json", "w") as f:
+        json.dump(data, f, indent=2, separators=(',', ':'))
+
+    # soup = get_html(sys.argv[1])
+    # with open(sys.argv[1] + ".json", "w") as f:
+    #     json.dump(soup.prettify(), f, indent=2)
+    # for i, r in enumerate(extract_amendments(sys.argv[1])):
+    #     with open(sys.argv[1] + f"_{i}.json", 'w') as f:
+    #         json.dump(r, f, indent=2, separators=(',', ':'))
+    #     print(json.dumps(r, indent=2, separators=(',', ':')))
+    #     print("-" * 80)
