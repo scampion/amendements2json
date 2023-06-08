@@ -332,11 +332,9 @@ def get_justification(amend):
 
 
 def get_amendments(soup):
-    md = get_metadata(soup)
-    # Extract html from final amendment
-    dossier_id = md["dossier_id"]
-    #final_amendments= get_final_dossier_am(dossier_id)
+    metadata = get_metadata(soup)
     for amend in soup.find_all("amend"):
+        md = metadata.copy()
         md['article'] = get_article(amend)
         md['article_type'] = get_article_type(amend)
         md['target'] = soup.find('article').text.strip()
@@ -351,11 +349,11 @@ def get_amendments(soup):
             md['edit_indices'] = edit_indices
             md['edit_id'] = i
             yield md
-
 def extract_amendments(file):
     soup = get_html(file)
     assert soup.find("typeam") and soup.find("typeam").text.strip() == "AMENDMENTS", "Not an amendment file"
-    return get_amendments(soup)
+    for a in get_amendments(soup):
+         yield a
 
 
 def extract_amendments_from_dir(dir, legislative_number=None, max_nb_of_docs=None):
