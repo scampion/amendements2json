@@ -252,9 +252,8 @@ def get_edits(amend):
     text_amended = text_amended.replace(',', '')
 
     # We get here the edit_indices and edit type using difflib
-    edit_type = None
-    diff_indices = {'i1': 0, 'i2': 0, 'j1': 0, 'j2': 0}
     diff_iterator = enumerate(difflib.ndiff(text_original.split(), text_amended.split()))
+    diff_indices = {'i1': 0, 'i2': 0, 'j1': 0, 'j2': 0}
     for i, line in diff_iterator:
         if line.startswith('-'):
             edit_type = 'delete'
@@ -265,10 +264,10 @@ def get_edits(amend):
             try:
                 while diff_iterator.__next__()[1].startswith('-'):
                     diff_indices['i2'] += 1
-                    i += 1
             except StopIteration:
                 pass
-            yield text_original.lower().split(), text_amended.lower().split(), edit_type, diff_indices
+            print(edit_type, diff_indices)
+            yield text_original, text_amended, edit_type, diff_indices
         elif line.startswith('+'):
             edit_type = 'insert'
             diff_indices['i1'] = i
@@ -278,10 +277,9 @@ def get_edits(amend):
             try:
                 while diff_iterator.__next__()[1].startswith('+'):
                     diff_indices['j2'] += 1
-                    i += 1
             except StopIteration:
                 pass
-            yield text_original.lower().split(), text_amended.lower().split(), edit_type, diff_indices
+            yield text_original, text_amended, edit_type, diff_indices
         elif line.startswith('?'):
             edit_type = 'replace'
             diff_indices['i1'] = i
@@ -292,11 +290,9 @@ def get_edits(amend):
                 while diff_iterator.__next__()[1].startswith('?'):
                     diff_indices['i2'] += 1
                     diff_indices['j2'] += 1
-                    i += 1
             except StopIteration:
                 pass
-            yield text_original.lower().split(), text_amended.lower().split(), edit_type, diff_indices
-
+            yield text_original, text_amended, edit_type, diff_indices
 
 def get_authors(amend, date):
     def get_mep_info(name):
@@ -338,7 +334,6 @@ def get_justification(amend):
 
 def get_amendments(soup):
     md = get_metadata(soup)
-
     # Extract html from final amendment
     dossier_id = md["dossier_id"]
     #final_amendments= get_final_dossier_am(dossier_id)
@@ -351,6 +346,7 @@ def get_amendments(soup):
         md['justification'] = get_justification(amend)
         #md["accepted"] = get_label_am(md['text_amended'], final_amendments)
         for text_original, text_amended, edit_type, edit_indices in get_edits(amend):
+            print(edit_type, edit_indices)
             md['text_original'] = text_original
             md['text_amended'] = text_amended
             md['edit_type'] = edit_type
@@ -360,9 +356,7 @@ def get_amendments(soup):
 def extract_amendments(file):
     soup = get_html(file)
     assert soup.find("typeam") and soup.find("typeam").text.strip() == "AMENDMENTS", "Not an amendment file"
-    md = get_metadata(soup)
-    for i, a in enumerate(get_amendments(soup)):
-        yield md | a
+    return  get_amendments(soup)
 
 
 def extract_amendments_from_dir(dir, legislative_number=None, max_nb_of_docs=None):
