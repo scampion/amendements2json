@@ -345,18 +345,19 @@ def get_amendments(soup):
         md['amendment_num'] = get_amend_num(amend)
         md['justification'] = get_justification(amend)
         #md["accepted"] = get_label_am(md['text_amended'], final_amendments)
-        for text_original, text_amended, edit_type, edit_indices in get_edits(amend):
+        for i, (text_original, text_amended, edit_type, edit_indices) in enumerate(get_edits(amend)):
             print(edit_type, edit_indices)
             md['text_original'] = text_original
             md['text_amended'] = text_amended
             md['edit_type'] = edit_type
             md['edit_indices'] = edit_indices
+            md['edit_id'] = i
             yield md
 
 def extract_amendments(file):
     soup = get_html(file)
     assert soup.find("typeam") and soup.find("typeam").text.strip() == "AMENDMENTS", "Not an amendment file"
-    return  get_amendments(soup)
+    return get_amendments(soup)
 
 
 def extract_amendments_from_dir(dir, legislative_number=None, max_nb_of_docs=None):
