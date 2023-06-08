@@ -347,8 +347,8 @@ def get_amendments(soup):
             md['text_amended'] = text_amended
             md['edit_type'] = edit_type
             md['edit_indices'] = edit_indices
-            md['edit_id'] = i
-            yield md
+            md['edit_id'] = i + 1
+            yield md.copy()
 def extract_amendments(file):
     soup = get_html(file)
     assert soup.find("typeam") and soup.find("typeam").text.strip() == "AMENDMENTS", "Not an amendment file"
