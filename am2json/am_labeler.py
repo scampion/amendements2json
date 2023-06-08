@@ -5,6 +5,12 @@
 # get_final_dossier_html and then calling this function on the text and final_dossier
 import re
 import string
+from io import BytesIO
+
+import requests
+
+from amendements2json.am2json import get_html
+from amendements2json.am2json.am2json import extract_final_amendments, get_dossier_id
 
 
 def remove_enumeration_pattern(text):
@@ -27,15 +33,39 @@ def preprocess_text(am):
 def get_label_am(am_text, final_amendments):
     if isinstance(am_text, list):
         am_text = " ".join(am_text)
-
     am_text = remove_enumeration_pattern(am_text)
     am_text = preprocess_text(am_text)
-
-
     final_amendments = [preprocess_text(text) for text in final_amendments]
-
     if am_text in final_amendments:
         return True
     else:
         return False
 
+
+def get_final_dossier_am(dossier_id, local=False):
+
+    if local:
+        dossier_file = f"./final_dossiers/{dossier_id}.docx"
+        amendments = extract_final_amendments(dossier_file)
+        return amendments
+    else:
+        url_link = get_final_dossier_link(dossier_id)
+        if url_link:
+            response = requests.get(url_link)
+            file_in_mem = BytesIO(response.content)
+            amendments = extract_final_amendments(file_in_mem)
+            return amendments
+        else:
+            return []
+
+
+def get_final_dossiers(directory, download=False, debug=False):
+    doc_files = list(directory.rglob("*_EN.docx"))
+    final_dossiers = []
+
+    for doc_file in doc_files:
+        soup = get_html(doc_file)
+        dossier_id = get_dossier_id(soup)
+        final_dossier = get_final_dossier_link(dossier_id, download=download, debug=debug)
+        final_dossiers.append(final_dossier)
+    return final_dossiers

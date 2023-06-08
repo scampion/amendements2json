@@ -4,3 +4,7 @@ pip-chill==1.0.3
 python-docx==0.8.11
 xmltodict==0.13.0
 requests==2.31.0
+amendements2json==1.0.0
+jsondiff==2.0.0
+python-levenshtein==0.21.0
+tqdm==4.65.0

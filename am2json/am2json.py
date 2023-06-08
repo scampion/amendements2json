@@ -1,28 +1,24 @@
+import datetime
 import difflib
 import glob
 import json
-import os
-import sys
 import logging
-import datetime
-from collections import defaultdict
-from tqdm import tqdm
-
-from bs4 import BeautifulSoup
+import os
 import re
+import sys
+import unicodedata
 
+import am2json.meps as meps
+from bs4 import BeautifulSoup
 from docx import Document
 from docx.document import Document as _Document
-from docx.oxml.text.paragraph import CT_P
 from docx.oxml.table import CT_Tbl
+from docx.oxml.text.paragraph import CT_P
 from docx.table import _Cell, Table, _Row
 from docx.text.paragraph import Paragraph
-import requests
-from io import BytesIO
-import unicodedata
-import am2json.meps as meps
-from am2json.am_labeler import get_label_am
-from am2json.dossier_retriever import get_final_dossier_link
+from tqdm import tqdm
+
+#from amendements2json.am2json.am_labeler import get_final_dossier_am
 
 logging.basicConfig(level=logging.DEBUG)
 log = logging.getLogger(__name__)
@@ -131,35 +127,10 @@ def extract_final_amendments(file):
 
 
 # Based on dossier ID, look for link or local file to get final amendments docx, and then apply function above.
-def get_final_dossier_am(dossier_id, local=False):
-
-    if local:
-        dossier_file = f"./final_dossiers/{dossier_id}.docx"
-        amendments = extract_final_amendments(dossier_file)
-        return amendments
-    else:
-        url_link = get_final_dossier_link(dossier_id)
-        if url_link:
-            response = requests.get(url_link)
-            file_in_mem = BytesIO(response.content)
-            amendments = extract_final_amendments(file_in_mem)
-            return amendments
-        else:
-            return []
 
 
 # directory has to be a Pathlib directory, gets all final dossiers based on
 # a directory that contains the amendment documents.
-def get_final_dossiers(directory, download=False, debug=False):
-    doc_files = list(directory.rglob("*_EN.docx"))
-    final_dossiers = []
-
-    for doc_file in doc_files:
-        soup = get_html(doc_file)
-        dossier_id = get_dossier_id(soup)
-        final_dossier = get_final_dossier_link(dossier_id, download=download, debug=debug)
-        final_dossiers.append(final_dossier)
-    return final_dossiers
 
 
 def get_parliament(soup):
@@ -265,7 +236,7 @@ def get_metadata(soup):
             }
 
 
-def get_amd(amend):
+def get_edits(amend):
     table = amend.find("table")
     text_original = table.find_all("tr")[1].find_all("td")[0].text.strip()
     text_amended = table.find_all("tr")[1].find_all("td")[1].text.strip()
@@ -277,37 +248,54 @@ def get_amd(amend):
     if text_amended and re.match(r'\([a-zA-Z]\)', text_amended.split()[0]):
         text_amended = ' '.join(text_amended.split()[1:])
 
-    text_original = text_original.replace(',', ' ,')
-    text_amended = text_amended.replace(',', ' ,')
+    text_original = text_original.replace(',', '')
+    text_amended = text_amended.replace(',', '')
 
     # We get here the edit_indices and edit type using difflib
-    diff = difflib.ndiff(text_original.split(), text_amended.split())
     edit_type = None
     diff_indices = {'i1': 0, 'i2': 0, 'j1': 0, 'j2': 0}
-
-    for i, line in enumerate(diff):
+    diff_iterator = enumerate(difflib.ndiff(text_original.split(), text_amended.split()))
+    for i, line in diff_iterator:
         if line.startswith('-'):
             edit_type = 'delete'
             diff_indices['i1'] = i
             diff_indices['i2'] = i + 1
             diff_indices['j1'] = i
             diff_indices['j2'] = i
-            break
+            try:
+                while diff_iterator.__next__()[1].startswith('-'):
+                    diff_indices['i2'] += 1
+                    i += 1
+            except StopIteration:
+                pass
+            yield text_original.lower().split(), text_amended.lower().split(), edit_type, diff_indices
         elif line.startswith('+'):
             edit_type = 'insert'
             diff_indices['i1'] = i
             diff_indices['i2'] = i
             diff_indices['j1'] = i
             diff_indices['j2'] = i + 1
-            break
+            try:
+                while diff_iterator.__next__()[1].startswith('+'):
+                    diff_indices['j2'] += 1
+                    i += 1
+            except StopIteration:
+                pass
+            yield text_original.lower().split(), text_amended.lower().split(), edit_type, diff_indices
         elif line.startswith('?'):
             edit_type = 'replace'
             diff_indices['i1'] = i
             diff_indices['i2'] = i + 1
             diff_indices['j1'] = i
             diff_indices['j2'] = i + 1
-            break
-    return text_original.lower().split(), text_amended.lower().split(), edit_type, diff_indices
+            try:
+                while diff_iterator.__next__()[1].startswith('?'):
+                    diff_indices['i2'] += 1
+                    diff_indices['j2'] += 1
+                    i += 1
+            except StopIteration:
+                pass
+            yield text_original.lower().split(), text_amended.lower().split(), edit_type, diff_indices
 
 
 def get_authors(amend, date):
@@ -318,6 +306,7 @@ def get_authors(amend, date):
         for mep_id, mep_data in mep_info.items():
             if mep_data.get('name').lower() == name.lower():
                 return mep_id, mep_data
+        return '-1', ''
         log.warning(f"Could not find MEP {name} in the list of MEPs")
 
     for author in [author.strip() for author in amend.find("members").text.split(",")]:
@@ -352,7 +341,7 @@ def get_amendments(soup):
 
     # Extract html from final amendment
     dossier_id = md["dossier_id"]
-    final_amendments= get_final_dossier_am(dossier_id)
+    #final_amendments= get_final_dossier_am(dossier_id)
     for amend in soup.find_all("amend"):
         md['article'] = get_article(amend)
         md['article_type'] = get_article_type(amend)
@@ -360,9 +349,13 @@ def get_amendments(soup):
         md['authors'] = list(get_authors(amend, md['date']))
         md['amendment_num'] = get_amend_num(amend)
         md['justification'] = get_justification(amend)
-        md['text_original'], md['text_amended'], md['edit_type'], md['edit_indices'] = get_amd(amend)
-        md["accepted"] = get_label_am(md['text_amended'], final_amendments)
-        yield md
+        #md["accepted"] = get_label_am(md['text_amended'], final_amendments)
+        for text_original, text_amended, edit_type, edit_indices in get_edits(amend):
+            md['text_original'] = text_original
+            md['text_amended'] = text_amended
+            md['edit_type'] = edit_type
+            md['edit_indices'] = edit_indices
+            yield md
 
 def extract_amendments(file):
     soup = get_html(file)
