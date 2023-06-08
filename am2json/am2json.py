@@ -253,14 +253,10 @@ def get_edits(amend):
 
     # We get here the edit_indices and edit type using difflib
     diff_iterator = enumerate(difflib.ndiff(text_original.split(), text_amended.split()))
-    diff_indices = {'i1': 0, 'i2': 0, 'j1': 0, 'j2': 0}
     for i, line in diff_iterator:
         if line.startswith('-'):
             edit_type = 'delete'
-            diff_indices['i1'] = i
-            diff_indices['i2'] = i + 1
-            diff_indices['j1'] = i
-            diff_indices['j2'] = i
+            diff_indices = {'i1': i, 'i2': i + 1, 'j1': i, 'j2': i}
             try:
                 while diff_iterator.__next__()[1].startswith('-'):
                     diff_indices['i2'] += 1
@@ -269,10 +265,7 @@ def get_edits(amend):
             yield text_original, text_amended, edit_type, diff_indices
         elif line.startswith('+'):
             edit_type = 'insert'
-            diff_indices['i1'] = i
-            diff_indices['i2'] = i
-            diff_indices['j1'] = i
-            diff_indices['j2'] = i + 1
+            diff_indices = {'i1': i, 'i2': i, 'j1': i, 'j2': i + 1 }
             try:
                 while diff_iterator.__next__()[1].startswith('+'):
                     diff_indices['j2'] += 1
@@ -281,10 +274,7 @@ def get_edits(amend):
             yield text_original, text_amended, edit_type, diff_indices
         elif line.startswith('?'):
             edit_type = 'replace'
-            diff_indices['i1'] = i
-            diff_indices['i2'] = i + 1
-            diff_indices['j1'] = i
-            diff_indices['j2'] = i + 1
+            diff_indices = {'i1': i, 'i2': i + 1, 'j1': i, 'j2': i + 1 }
             try:
                 while diff_iterator.__next__()[1].startswith('?'):
                     diff_indices['i2'] += 1
