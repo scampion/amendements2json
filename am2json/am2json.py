@@ -266,7 +266,6 @@ def get_edits(amend):
                     diff_indices['i2'] += 1
             except StopIteration:
                 pass
-            print(edit_type, diff_indices)
             yield text_original, text_amended, edit_type, diff_indices
         elif line.startswith('+'):
             edit_type = 'insert'
@@ -346,7 +345,6 @@ def get_amendments(soup):
         md['justification'] = get_justification(amend)
         #md["accepted"] = get_label_am(md['text_amended'], final_amendments)
         for i, (text_original, text_amended, edit_type, edit_indices) in enumerate(get_edits(amend)):
-            print(edit_type, edit_indices)
             md['text_original'] = text_original
             md['text_amended'] = text_amended
             md['edit_type'] = edit_type
