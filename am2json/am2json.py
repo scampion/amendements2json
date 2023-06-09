@@ -9,6 +9,7 @@ import sys
 import unicodedata
 
 import am2json.meps as meps
+import am2json.diff as diff
 from bs4 import BeautifulSoup
 from docx import Document
 from docx.document import Document as _Document
@@ -18,7 +19,7 @@ from docx.table import _Cell, Table, _Row
 from docx.text.paragraph import Paragraph
 from tqdm import tqdm
 
-#from amendements2json.am2json.am_labeler import get_final_dossier_am
+# from amendements2json.am2json.am_labeler import get_final_dossier_am
 
 logging.basicConfig(level=logging.DEBUG)
 log = logging.getLogger(__name__)
@@ -105,7 +106,6 @@ def get_html(file):
 
 # Based on docx file of final amendment, get all amendments
 def extract_final_amendments(file):
-
     document = Document(file)
 
     paragraphs = [p.text for p in document.paragraphs if p.text.strip()]
@@ -191,10 +191,12 @@ def get_article_type(soup):
         article_type = soup.find("article").text.strip()
         return article_type.split(' ')[0].lower()
 
+
 def get_article(soup):
     if soup.find("article"):
         article = soup.find("article").text.strip()
         return article.lower()
+
 
 def get_titretype(soup):
     if soup.find('titretype'):
@@ -248,40 +250,12 @@ def get_edits(amend):
     if text_amended and re.match(r'\([a-zA-Z]\)', text_amended.split()[0]):
         text_amended = ' '.join(text_amended.split()[1:])
 
-    text_original = text_original.replace(',', '')
-    text_amended = text_amended.replace(',', '')
+    text_original = text_original.replace(',', ' ,')
+    text_amended = text_amended.replace(',', ' ,')
 
-    # We get here the edit_indices and edit type using difflib
-    diff_iterator = enumerate(difflib.ndiff(text_original.split(), text_amended.split()))
-    for i, line in diff_iterator:
-        if line.startswith('-'):
-            edit_type = 'delete'
-            diff_indices = {'i1': i, 'i2': i + 1, 'j1': i, 'j2': i}
-            try:
-                while diff_iterator.__next__()[1].startswith('-'):
-                    diff_indices['i2'] += 1
-            except StopIteration:
-                pass
-            yield text_original, text_amended, edit_type, diff_indices
-        elif line.startswith('+'):
-            edit_type = 'insert'
-            diff_indices = {'i1': i, 'i2': i, 'j1': i, 'j2': i + 1 }
-            try:
-                while diff_iterator.__next__()[1].startswith('+'):
-                    diff_indices['j2'] += 1
-            except StopIteration:
-                pass
-            yield text_original, text_amended, edit_type, diff_indices
-        elif line.startswith('?'):
-            edit_type = 'replace'
-            diff_indices = {'i1': i, 'i2': i + 1, 'j1': i, 'j2': i + 1 }
-            try:
-                while diff_iterator.__next__()[1].startswith('?'):
-                    diff_indices['i2'] += 1
-                    diff_indices['j2'] += 1
-            except StopIteration:
-                pass
-            yield text_original, text_amended, edit_type, diff_indices
+    for edit_type, i1, i2, j1, j2 in diff.extract_opcodes(text_original.split(), text_amended.split()):
+        yield text_original, text_amended, edit_type, {'i1': i1, 'i2': i2, 'j1': j1, 'j2': j2}
+
 
 def get_authors(amend, date):
     def get_mep_info(name):
@@ -331,7 +305,7 @@ def get_amendments(soup):
         md['authors'] = list(get_authors(amend, md['date']))
         md['amendment_num'] = get_amend_num(amend)
         md['justification'] = get_justification(amend)
-        #md["accepted"] = get_label_am(md['text_amended'], final_amendments)
+        # md["accepted"] = get_label_am(md['text_amended'], final_amendments)
         for i, (text_original, text_amended, edit_type, edit_indices) in enumerate(get_edits(amend)):
             md['text_original'] = text_original
             md['text_amended'] = text_amended
@@ -339,11 +313,13 @@ def get_amendments(soup):
             md['edit_indices'] = edit_indices
             md['edit_id'] = i + 1
             yield md.copy()
+
+
 def extract_amendments(file):
     soup = get_html(file)
     assert soup.find("typeam") and soup.find("typeam").text.strip() == "AMENDMENTS", "Not an amendment file"
     for a in get_amendments(soup):
-         yield a
+        yield a
 
 
 def extract_amendments_from_dir(dir, legislative_number=None, max_nb_of_docs=None):
@@ -351,7 +327,7 @@ def extract_amendments_from_dir(dir, legislative_number=None, max_nb_of_docs=Non
     nb_of_amendments = 0
     nb_of_documents = 0
     log.info(f"Extracting amendments from {dir}")
-    for file in tqdm(glob.glob(dir+"/**/*", recursive=True)):
+    for file in tqdm(glob.glob(dir + "/**/*", recursive=True)):
         if file.endswith("EN.doc") or file.endswith("EN.docx"):
             try:
                 for a in extract_amendments(os.path.join(dir, file)):
@@ -373,7 +349,6 @@ def extract_amendments_from_dir(dir, legislative_number=None, max_nb_of_docs=Non
 
 
 if __name__ == '__main__':
-
     data = extract_amendments_from_dir(sys.argv[1])
     with open("dataset.json", "w") as f:
         json.dump(data, f, indent=2, separators=(',', ':'))
