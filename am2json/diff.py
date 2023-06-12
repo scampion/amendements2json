@@ -16,10 +16,11 @@ def extract_opcodes(a_words, b_words):
     matcher = difflib.SequenceMatcher(None, a_words, b_words)
     opcodes = matcher.get_opcodes()
 
+
     merged_opcodes = []
     for i in range(len(opcodes)):
         opcode = opcodes[i]
-        if i > 1 and opcode[0] == 'equal' and (opcode[2] - opcode[1]) == 1:
+        if 0 <i < (len(opcodes) - 1) and opcode[0] == 'equal' and (opcode[2] - opcode[1]) == 1:
             prev_opcode = merged_opcodes.pop()
             next_opcode = opcodes[i + 1]
             merged_opcodes.append(('replace', prev_opcode[1], next_opcode[2], prev_opcode[3], next_opcode[4]))
@@ -28,6 +29,53 @@ def extract_opcodes(a_words, b_words):
             merged_opcodes.append(opcode)
 
     return merged_opcodes
+
+
+def extract_opcodes_v2(a_words, b_words):
+    """
+    Extracts the opcodes between two strings a and b at the word level using difflib.
+
+    Args:
+        a (str): The first string.
+        b (str): The second string.
+
+    Returns:
+        list: A list of opcodes representing the differences between a and b.
+    """
+
+    matcher = difflib.SequenceMatcher(None, a_words, b_words)
+    opcodes = matcher.get_opcodes()
+
+    merged_opcodes = []
+    offset = 0
+    for i in range(len(opcodes)):
+        opcode = opcodes[i]
+        tag, i1, i2, j1, j2 = opcode
+        i1 += offset
+        i2 += offset
+
+        if 0 < i < (len(opcodes) - 1) and opcode[0] == 'equal' and (opcode[2] - opcode[1]) == 1:
+            prev_opcode = merged_opcodes.pop()
+            next_opcode = opcodes[i + 1]
+            merged_opcodes.append(('replace', prev_opcode[1], next_opcode[2], prev_opcode[3], next_opcode[4]))
+            offset += (i2 - prev_opcode[2]) - (j2 - prev_opcode[4])
+
+        elif (opcode[0] == 'replace' or opcode[0] == "delete") and merged_opcodes and merged_opcodes[-1][0] == 'replace' and opcode[1] <= merged_opcodes[-1][2]:
+            prev_opcode = merged_opcodes.pop()
+            merged_opcodes.append(('replace', prev_opcode[1], opcode[2], prev_opcode[3], opcode[4]))
+            offset += (i2 - prev_opcode[2]) - (j2 - prev_opcode[4])
+
+
+
+
+        else:
+
+            merged_opcodes.append(opcode)
+            offset += (i2 - i1) - (j2 - j1)
+
+    return merged_opcodes
+
+
 
     # matcher = difflib.SequenceMatcher(None, a_words, b_words)
     # opcodes = matcher.get_opcodes()
@@ -343,28 +391,44 @@ def test():
 
 
 if __name__ == '__main__':
-    file_path = "/Users/scampion/src/WoW/data/canonical/war-of-words-2-ep8-chronological.txt"
+    file_path = "../data/war-of-words-2-ep8.txt"
+    total_score = 0
+    amount_amendments = 0
+    amendments_with_mistakes = 0
     with open(file_path, "r") as f:
         for i, line in enumerate(f.readlines()):
             a = json.loads(line.rstrip())[0]
-            print(i, a['edit_type'], a['edit_indices'])
+            #print(i, a['edit_type'], a['edit_indices'])
             found = False
-            for j, (tag, i1, i2, j1, j2) in enumerate(extract_opcodes(a['text_original'], a['text_amended'])):
-                print('\t', j, tag, i1, i2, j1, j2)
+            am_mistake_found = False
+            # Bookkeeping
+            amount_amendments += 1
+            score = 1
+            print(f'amendment {i}:')
+
+            for j, (tag, i1, i2, j1, j2) in enumerate(extract_opcodes_v2(a['text_original'], a['text_amended'])):
+                # print('\t', j, tag, i1, i2, j1, j2)
                 if a['edit_type'] == tag and a['edit_indices'] == {"i1": i1, "i2": i2, "j1": j1, "j2": j2}:
-                    print('Founded', j)
+                    #print('Found', j)
                     found = True
                     break
-            if not found and i not in [18]:
-                print('Not found')
-                print(set(extract_opcodes(a['text_original'], a['text_amended'])))
-                to = a['text_original']
-                ta = a['text_amended']
-                print("original ::::: " + ' '.join(a['text_original']))
-                print("amended  ::::: " + ' '.join(a['text_amended']))
-                import IPython; IPython.embed()
-                break
 
-            print('-----')
-            if i > 20:
-                break
+            if not found:
+                i1, i2 = a["edit_indices"]["i1"], a["edit_indices"]["i2"]
+                score -= (i2 - i1) / len(a['text_amended'])
+                am_mistake_found = True
+                print(f'Mistake found with type {a["edit_type"]} and indices {a["edit_indices"]}.')
+
+            total_score += score
+
+            if am_mistake_found:
+                print("Amendment mistake found")
+                amendments_with_mistakes += 1
+
+
+
+
+        print('-----')
+
+    print(f"Total score is {total_score} with {amount_amendments} amendments with {amendments_with_mistakes} containing"
+          f" some type of edit mistakes, score is {total_score / amount_amendments}")
