@@ -42,6 +42,9 @@ def get_label_am(am_text, final_amendments):
         return False
 
 
+# Parameter local defines whether to get the file from local directory
+# Otherwise get it online
+# Based on dossier ID, look for link or local file to get final amendments docx, and then apply extract_final_amendments.
 def get_final_dossier_am(dossier_id, local=False):
 
     if local:
@@ -58,6 +61,8 @@ def get_final_dossier_am(dossier_id, local=False):
         else:
             return []
 
+# directory has to be a Pathlib directory, gets all final dossiers based on
+# a directory that contains the amendment documents.
 
 def get_final_dossiers(directory, download=False, debug=False):
     doc_files = list(directory.rglob("*_EN.docx"))

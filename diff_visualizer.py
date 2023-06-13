@@ -1,38 +1,22 @@
 import streamlit as st
-from am2json.diff import extract_opcodes_v2
+from am2json.diff import extract_opcodes
 import json
-def visualize_text_difference(original_text, amended_text):
-    original_words = original_text.split()
-    amended_words = amended_text.split()
 
-    opcodes = extract_opcodes_v2(original_words, amended_words)
-
-    for opcode in opcodes:
-        tag, i1, i2, j1, j2 = opcode
-
-        if tag == 'replace':
-            st.markdown(f"**Replace:** Original: {' '.join(original_words[i1:i2])}, Amended: {' '.join(amended_words[j1:j2])}")
-        elif tag == 'delete':
-            st.markdown(f"**Delete:** {' '.join(original_words[i1:i2])}")
-        elif tag == 'insert':
-            st.markdown(f"**Insert:** {' '.join(amended_words[j1:j2])}")
-        elif tag == 'equal':
-            st.markdown(f"**Equal:** {' '.join(original_words[i1:i2])}")
-
-
+# Main function that runs streamlit app, returns first edit tht does not match opcodes in json from ep8
 def main():
     st.title("Text Difference Visualizer")
 
     file_path = "./data/war-of-words-2-ep8.txt"
     exclude_index = st.text_input("Exclude Index", "18")
     exclude_index = int(exclude_index)
+    cutoff_index = 150
 
     with open(file_path, "r") as f:
         for i, line in enumerate(f.readlines()):
             a = json.loads(line.rstrip())[0]
             found = False
 
-            for j, (tag, i1, i2, j1, j2) in enumerate(extract_opcodes_v2(a['text_original'], a['text_amended'])):
+            for j, (tag, i1, i2, j1, j2) in enumerate(extract_opcodes(a['text_original'], a['text_amended'])):
 
                 if a['edit_type'] == tag and a['edit_indices'] == {"i1": i1, "i2": i2, "j1": j1, "j2": j2}:
                     found = True
@@ -43,12 +27,11 @@ def main():
 
                 original = a['text_original']
                 amended = a['text_amended']
-
                 original_html = []
                 amended_html = []
                 missing_tag = a["edit_type"]
 
-                for tag, i1, i2, j1, j2 in extract_opcodes_v2(a['text_original'], a['text_amended']):
+                for tag, i1, i2, j1, j2 in extract_opcodes(a['text_original'], a['text_amended']):
                     if tag == 'delete':
                         original_html.append(
                             f"<span style='background-color:rgba(255, 0, 0, 0.5)'>{' '.join(original[i1:i2])}</span>")
@@ -102,17 +85,14 @@ def main():
                     st.markdown(missing_amended_html, unsafe_allow_html=True)
 
                 st.write('-----')
-
                 st.sidebar.title("Key")
                 st.sidebar.markdown("- <span style='background-color:rgba(255, 0, 0, 0.5)'>Deleted Text</span>", unsafe_allow_html=True)
                 st.sidebar.markdown("- <span style='background-color:rgba(255, 165, 0, 0.5)'>Replaced Text</span>", unsafe_allow_html=True)
                 st.sidebar.markdown("- <span style='background-color:rgba(0, 128, 0, 0.5)'>Equal Text</span>", unsafe_allow_html=True)
                 st.sidebar.markdown("- <span style='background-color:rgba(128, 0, 128, 0.5)'>Inserted Text</span>", unsafe_allow_html=True)
-
-
                 break
 
-            if i > 150:
+            if i > cutoff_index:
                 break
 
 if __name__ == "__main__":

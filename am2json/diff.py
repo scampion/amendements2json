@@ -16,36 +16,6 @@ def extract_opcodes(a_words, b_words):
     matcher = difflib.SequenceMatcher(None, a_words, b_words)
     opcodes = matcher.get_opcodes()
 
-
-    merged_opcodes = []
-    for i in range(len(opcodes)):
-        opcode = opcodes[i]
-        if 0 <i < (len(opcodes) - 1) and opcode[0] == 'equal' and (opcode[2] - opcode[1]) == 1:
-            prev_opcode = merged_opcodes.pop()
-            next_opcode = opcodes[i + 1]
-            merged_opcodes.append(('replace', prev_opcode[1], next_opcode[2], prev_opcode[3], next_opcode[4]))
-            i += 1
-        else:
-            merged_opcodes.append(opcode)
-
-    return merged_opcodes
-
-
-def extract_opcodes_v2(a_words, b_words):
-    """
-    Extracts the opcodes between two strings a and b at the word level using difflib.
-
-    Args:
-        a (str): The first string.
-        b (str): The second string.
-
-    Returns:
-        list: A list of opcodes representing the differences between a and b.
-    """
-
-    matcher = difflib.SequenceMatcher(None, a_words, b_words)
-    opcodes = matcher.get_opcodes()
-
     merged_opcodes = []
     offset = 0
     for i in range(len(opcodes)):
@@ -65,11 +35,7 @@ def extract_opcodes_v2(a_words, b_words):
             merged_opcodes.append(('replace', prev_opcode[1], opcode[2], prev_opcode[3], opcode[4]))
             offset += (i2 - prev_opcode[2]) - (j2 - prev_opcode[4])
 
-
-
-
         else:
-
             merged_opcodes.append(opcode)
             offset += (i2 - i1) - (j2 - j1)
 
@@ -404,9 +370,9 @@ if __name__ == '__main__':
             # Bookkeeping
             amount_amendments += 1
             score = 1
-            print(f'amendment {i}:')
+            #print(f'amendment {i}:')
 
-            for j, (tag, i1, i2, j1, j2) in enumerate(extract_opcodes_v2(a['text_original'], a['text_amended'])):
+            for j, (tag, i1, i2, j1, j2) in enumerate(extract_opcodes(a['text_original'], a['text_amended'])):
                 # print('\t', j, tag, i1, i2, j1, j2)
                 if a['edit_type'] == tag and a['edit_indices'] == {"i1": i1, "i2": i2, "j1": j1, "j2": j2}:
                     #print('Found', j)
@@ -424,9 +390,6 @@ if __name__ == '__main__':
             if am_mistake_found:
                 print("Amendment mistake found")
                 amendments_with_mistakes += 1
-
-
-
 
         print('-----')
 
