@@ -64,23 +64,6 @@ def get_replace(a, b):
         if tag == 'replace' and ((i2 - i1) > 1 or (j2 - j1) > 1):
             yield tag, i1, i2, j1, j2
 
-
-# def get_edits(a, b):
-#     replacements = set(get_replace(a, b))
-#     s = difflib.SequenceMatcher(None, a, b)
-#     for tag, i1, i2, j1, j2 in s.get_opcodes():
-#         if tag == 'insert' or tag == 'delete':
-#             if replacements:
-#                 in_replacement = False
-#                 for r in replacements.copy():
-#                     if r[1] == i1 and r[2] == i2 and r[3] == j1 and r[4] == j2:
-#                         replacements.remove(r)
-#                         yield tag, i1, i2, j1, j2
-#             else:
-#                 yield tag, i1, i2, j1, j2
-#     for tag, i1, i2, j1, j2 in set(replacements):
-#         yield tag, i1, i2, j1 - 2, j2 - 2
-
 def get_edits(a, b):
     s = difflib.SequenceMatcher(None, a, b)
     edits = {(i1, i2, j1, j2): tag for tag, i1, i2, j1, j2 in s.get_opcodes() if tag in ['insert', 'delete', 'replace']}
