@@ -41,33 +41,6 @@ def extract_opcodes(a_words, b_words):
 
     return merged_opcodes
 
-
-
-    # matcher = difflib.SequenceMatcher(None, a_words, b_words)
-    # opcodes = matcher.get_opcodes()
-    #
-    # merged_opcodes = []
-    # for opcode in opcodes:
-    #     if opcode[0] == 'insert' and opcode[4] - opcode[3] == 1:
-    #         # Combine adjacent insert opcodes into a single replace opcode
-    #         if merged_opcodes and merged_opcodes[-1][0] == 'replace':
-    #             prev_opcode = merged_opcodes.pop()
-    #             merged_opcodes.append(('replace', prev_opcode[1], opcode[2], prev_opcode[3], opcode[4]))
-    #         else:
-    #             merged_opcodes.append(('replace', opcode[1], opcode[2], opcode[3], opcode[4]))
-    #     elif opcode[0] == 'delete' and opcode[2] - opcode[1] == 1:
-    #         # Combine adjacent delete opcodes into a single replace opcode
-    #         if merged_opcodes and merged_opcodes[-1][0] == 'replace':
-    #             prev_opcode = merged_opcodes.pop()
-    #             merged_opcodes.append(('replace', prev_opcode[1], prev_opcode[2], prev_opcode[3], opcode[4]))
-    #         else:
-    #             merged_opcodes.append(('replace', opcode[1], opcode[2], opcode[3], opcode[4]))
-    #     else:
-    #         merged_opcodes.append(opcode)
-    #
-    # return merged_opcodes
-
-
 def diff(a, b):
     #a = [c + d for c, d in zip(a, a[1:])]
     #b = [c + d for c, d in zip(b, b[1:])]
