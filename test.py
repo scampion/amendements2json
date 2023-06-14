@@ -14,5 +14,12 @@ if __name__ == '__main__':
         for name, a in articles.items():
             if len(a) > 1:
                 print(f"{len(a)} amendments in conflict for {dossier} {name}")
-    with open("dataset.json", "w") as f:
-        json.dump(data, f, indent=2, separators=(',', ':'))
+
+
+    # with open(sys.argv[1] + ".html", 'w') as f:
+    #     soup = am2json.get_html(sys.argv[1])
+    #     f.write(soup.prettify())
+    # with open(sys.argv[1] + ".json", "w") as f:
+    #     for amend in am2json.extract_amendments(sys.argv[1]):
+    #         f.write(json.dumps(amend, ensure_ascii=False, sort_keys=True))
+    #         f.write("\n")
