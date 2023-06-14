@@ -30,7 +30,6 @@ def run_test(amendments, idx):
     text = remove_enumeration_pattern(am_text)
 
 
-
     print("------------------")
     print("------------------")
     print(text)

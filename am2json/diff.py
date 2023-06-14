@@ -29,22 +29,32 @@ if __name__ == '__main__':
             a = json.loads(line.rstrip())[0]
             print("============ ", i, a['edit_type'], a['edit_indices'])
             found = False
+            am_mistake_found = False
+            # Bookkeeping
+            amount_amendments += 1
+            score = 1
+            #print(f'amendment {i}:')
+
             for j, (tag, i1, i2, j1, j2) in enumerate(extract_opcodes(a['text_original'], a['text_amended'])):
-                print('\t', j, tag, i1, i2, j1, j2)
+                # print('\t', j, tag, i1, i2, j1, j2)
                 if a['edit_type'] == tag and a['edit_indices'] == {"i1": i1, "i2": i2, "j1": j1, "j2": j2}:
-                    print('Founded', j)
+                    #print('Found', j)
                     found = True
                     break
-            if not found and i not in [18, 39, 40, 44]:
-                print('Not found')
-                print(set(extract_opcodes(a['text_original'], a['text_amended'])))
-                to = a['text_original']
-                ta = a['text_amended']
-                print("original ::::: " + ' '.join(a['text_original']))
-                print("amended  ::::: " + ' '.join(a['text_amended']))
-                import IPython; IPython.embed()
-                break
 
-            print('-----')
-            if i > 60:
-                break
+            if not found:
+                i1, i2 = a["edit_indices"]["i1"], a["edit_indices"]["i2"]
+                score -= (i2 - i1) / len(a['text_amended'])
+                am_mistake_found = True
+                print(f'Mistake found with type {a["edit_type"]} and indices {a["edit_indices"]}.')
+
+            total_score += score
+
+            if am_mistake_found:
+                print("Amendment mistake found")
+                amendments_with_mistakes += 1
+
+        print('-----')
+
+    print(f"Total score is {total_score} with {amount_amendments} amendments with {amendments_with_mistakes} containing"
+          f" some type of edit mistakes, score is {total_score / amount_amendments}")

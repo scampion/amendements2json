@@ -95,23 +95,17 @@ def get_html(file):
                     html_string += "</tr>"
 
             html_string += "</table>"
-
     soup = BeautifulSoup(html_string, "html.parser")
     return soup
-
-
-# Parameter local defines whether to get the file from local directory
-# Otherwise get it online
-
 
 # Based on docx file of final amendment, get all amendments
 def extract_final_amendments(file):
     document = Document(file)
-
     paragraphs = [p.text for p in document.paragraphs if p.text.strip()]
     amendments = []
     # Minimum paragraph length
     min_length = 12
+
     for paragraph in paragraphs:
         # Check if the paragraph starts with an enumeration pattern, i.e. with "-" or "A." or 1.
         if re.match(r'^[-\dA-Z]+\.', paragraph) or paragraph[0] in ["-", "–"]:
@@ -125,12 +119,6 @@ def extract_final_amendments(file):
                 amendments.append(text)
     return amendments
 
-
-# Based on dossier ID, look for link or local file to get final amendments docx, and then apply function above.
-
-
-# directory has to be a Pathlib directory, gets all final dossiers based on
-# a directory that contains the amendment documents.
 
 
 def get_parliament(soup):
@@ -352,12 +340,3 @@ if __name__ == '__main__':
     data = extract_amendments_from_dir(sys.argv[1])
     with open("dataset.json", "w") as f:
         json.dump(data, f, indent=2, separators=(',', ':'))
-
-    # soup = get_html(sys.argv[1])
-    # with open(sys.argv[1] + ".json", "w") as f:
-    #     json.dump(soup.prettify(), f, indent=2)
-    # for i, r in enumerate(extract_amendments(sys.argv[1])):
-    #     with open(sys.argv[1] + f"_{i}.json", 'w') as f:
-    #         json.dump(r, f, indent=2, separators=(',', ':'))
-    #     print(json.dumps(r, indent=2, separators=(',', ':')))
-    #     print("-" * 80)
