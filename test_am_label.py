@@ -1,6 +1,7 @@
 from am2json.am2json import extract_amendments
 from am2json.am2json import get_html
-from am2json.am2json import get_final_dossier_am, get_label_am
+from am2json.am2json import get_label_am
+from amendements2json.am2json.am_labeler import get_final_dossier_am
 from am2json.am_labeler import remove_enumeration_pattern
 import pathlib
 import json

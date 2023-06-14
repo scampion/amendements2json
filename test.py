@@ -14,8 +14,6 @@ if __name__ == '__main__':
         for name, a in articles.items():
             if len(a) > 1:
                 print(f"{len(a)} amendments in conflict for {dossier} {name}")
-    with open("dataset.json", "w") as f:
-        json.dump(data, f, indent=2, separators=(',', ':'))
 
 
     # with open(sys.argv[1] + ".html", 'w') as f:
