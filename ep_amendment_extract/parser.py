@@ -336,6 +336,8 @@ def extract_amendments_from_dir(dir, legislative_number=None, max_nb_of_docs=Non
     return data
 
 
+
+
 if __name__ == '__main__':
     data = extract_amendments_from_dir(sys.argv[1])
     with open("dataset.json", "w") as f:

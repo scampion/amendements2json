@@ -5,16 +5,18 @@ from setuptools import find_packages, setup
 with open("README.md") as f:
     readme = f.read()
 
-version = "1.0.0"
+version = "1.0.2"
+
+requirements = open("requirements.txt").read().splitlines()
 
 setup(
-    name="amendements2json",
+    name="europarl_amendment_extract",
     version=version,
     description="Extract amendments from European Parliament docx files",
     long_description=readme,
     long_description_content_type="text/markdown",
     author="Sebastien Campion",
     license="MIT",
-    packages=['am2json'],
-    install_requires=open("requirements.txt").read().splitlines(),
+    packages=['ep_amendment_extract'],
+    install_requires=requirements,
 )
