@@ -5,7 +5,7 @@ from setuptools import find_packages, setup
 with open("README.md") as f:
     readme = f.read()
 
-version = "1.0.2"
+version = "1.0.3"
 
 requirements = open("requirements.txt").read().splitlines()
 

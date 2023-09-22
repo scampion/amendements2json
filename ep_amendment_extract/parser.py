@@ -8,8 +8,8 @@ import re
 import sys
 import unicodedata
 
-import am2json.meps as meps
-import am2json.diff as diff
+import ep_amendment_extract.meps as meps
+import ep_amendment_extract.diff as diff
 from bs4 import BeautifulSoup
 from docx import Document
 from docx.document import Document as _Document
@@ -289,7 +289,7 @@ def get_amendments(soup):
         md = metadata.copy()
         md['article'] = get_article(amend)
         md['article_type'] = get_article_type(amend)
-        md['target'] = soup.find('article').text.strip()
+        md['target'] = amend.find('article').text.strip()
         md['authors'] = list(get_authors(amend, md['date']))
         md['amendment_num'] = get_amend_num(amend)
         md['justification'] = get_justification(amend)
